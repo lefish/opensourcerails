@@ -2,14 +2,18 @@ ActionController::Routing::Routes.draw do |map|
   
   map.resource :session
   map.resources :users, :member => {:activate => :get, :spammer => :put, :edit_password => :get}, :collection => {:reset_password => :any}
-    
+  
   map.resources :projects, 
+                  :collection => {
+                    :upcoming => :get
+                  },
                   :member => {
                     :submit => :put, 
                     :approve => :put, 
                     :details => :get, 
                     :rate => :post,
-                    :download => :get
+                    :download => :get,
+                    :activities => :get
                   } do |project|    
 
     project.resources :comments

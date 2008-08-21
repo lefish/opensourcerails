@@ -225,6 +225,23 @@ class ProjectsController < ApplicationController
     redirect_to @project.previous
   end
   
+  def upcoming
+    @upcoming = Project.upcoming
+    respond_to do |format|
+      format.xml {render :xml => @upcoming}
+      format.atom
+    end
+  end
+  
+  def activities
+    @project = get_project
+    @activities = @project.activities
+    respond_to do |format|
+      # TODO fix it, server will hung up when visit http://localhost:3000/projects/6/activities.atom
+      format.atom {render :partial => "activities/activity.atom.builder"}
+    end
+  end
+  
   protected
   # retrieves the current project from params[:id]
   def get_project

@@ -13,6 +13,8 @@ class Project < ActiveRecord::Base
   
   has_many :bookmarks, :dependent => :destroy
   
+  has_many :activities, :dependent => :delete_all
+  
   validates_uniqueness_of :title, :on => :create, :message => "must be unique"
 
   attr_accessible :title, :description, :author_name, :author_contact,
