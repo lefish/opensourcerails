@@ -1,7 +1,10 @@
 ActionController::Routing::Routes.draw do |map|
-  
+
+  map.open_id_complete 'sessions', :controller => "sessions", :action => "create", :requirements => { :method => :get }
   map.resource :session
   map.resources :users, :member => {:activate => :get, :spammer => :put, :edit_password => :get}, :collection => {:reset_password => :any}
+  
+  map.activities "/activities.:format", :controller => "projects", :action => "activities", :format => nil
   
   map.resources :projects, 
                   :collection => {
