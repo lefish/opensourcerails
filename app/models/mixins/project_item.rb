@@ -31,25 +31,13 @@ module Mixins::ProjectItem
   # Define ownership method
   def owned_by?(user)
     return false unless user.is_a? User
-    
-    if self.owner_id == user.id
-      # return true if user owns the item
-      return true
-    elsif self.project and self.project.owned_by?(user)
-      # return true if user owns the project
-      return true
-    else
-      return false
-    end
+    # return true if user owns the item || return true if user owns the project
+    (self.owner_id == user.id) || (self.project and self.project.owned_by?(user))
   end
   
   # check if a project item is spam
   def is_spam?
-    if self.owner and self.owner.spammer?
-      return true
-    else
-      return false
-    end
+    self.owner and self.owner.spammer?
   end
   
   

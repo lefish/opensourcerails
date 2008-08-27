@@ -35,18 +35,26 @@ class User < ActiveRecord::Base
 
   # basic info validations
   validates_presence_of     :ip_address,                              :unless => :signed_up?
-  validates_presence_of     :login,                                   :if => :signed_up?
-  validates_presence_of     :email,                                   :if => :signed_up?
-  validates_length_of       :login, :within => 3..40,                 :if => :signed_up?
-  validates_length_of       :email, :within => 3..100,                :if => :signed_up?
-  validates_uniqueness_of   :login, :email, :case_sensitive => false, :if => :signed_up?
-  validates_as_email_address :email,                                   :if => :signed_up?
+  
+  # basic info validations
+  with_options :if => :signed_up? do |user|
+    user.validates_presence_of     :login
+    user.validates_presence_of     :email
+    user.validates_length_of       :login, :within => 3..40
+    user.validates_length_of       :email, :within => 3..100
+    user.validates_uniqueness_of   :login, :email, :case_sensitive => false
+    user.validates_as_email_address :email
+  end
 
+  
   # password validations
-  validates_presence_of     :password,                                :if => :password_required?
-  validates_presence_of     :password_confirmation,                   :if => :password_required?
-  validates_length_of       :password, :within => 4..40,              :if => :password_required?
-  validates_confirmation_of :password,                                :if => :password_required?
+  with_options :if => :password_required? do |user|
+    user.validates_presence_of :password
+    user.validates_confirmation_of :password
+    user.validates_format_of :password, :with => /^[^\s]+$/
+    user.validates_length_of       :password, :within => 4..40
+  end
+
   before_save               :encrypt_password
 
   # prevents a user from submitting a crafted form that bypasses activation
@@ -263,48 +271,48 @@ class User < ActiveRecord::Base
   end
 
   protected
-    # before filter 
-    def encrypt_password
-      return if password.blank? or !signed_up?
-      self.salt = Digest::SHA1.hexdigest("--#{Time.now.to_s}--#{login}--") if new_record?
-      self.crypted_password = encrypt(password)
-    end
+  # before filter 
+  def encrypt_password
+    return if password.blank? or !signed_up?
+    self.salt = Digest::SHA1.hexdigest("--#{Time.now.to_s}--#{login}--") if new_record?
+    self.crypted_password = encrypt(password)
+  end
         
-    def password_required?
-      signed_up? && (crypted_password.blank? || !password.blank?)
-    end
+  def password_required?
+    signed_up? && (crypted_password.blank? || !password.blank?)
+  end
     
-    def send_activation_code
-      self.deleted_at = nil
-      self.activation_code = Digest::SHA1.hexdigest( Time.now.to_s.split(//).sort_by {rand}.join )
-      self.save
+  def send_activation_code
+    self.deleted_at = nil
+    self.activation_code = Digest::SHA1.hexdigest( Time.now.to_s.split(//).sort_by {rand}.join )
+    self.save
+    UserMailer.deliver_signup_notification(self)
+  end
+    
+  def do_register
+    logger.debug("REGISTERING!")
+
+    if AppConfig.require_email_activation
+      send_activation_code
+    else
+      self.activate!
+    end
+  end
+    
+  def do_delete
+    logger.debug("DELETING!")
+    self.deleted_at = Time.now.utc
+  end
+
+  def do_activate
+    logger.debug("ACTIVATING!")
+    self.activated_at = Time.now.utc
+    self.deleted_at = self.activation_code = nil
+      
+    if AppConfig.require_email_activation
+      UserMailer.deliver_activation_success(self)
+    else
       UserMailer.deliver_signup_notification(self)
     end
-    
-    def do_register
-      logger.debug("REGISTERING!")
-
-      if AppConfig.require_email_activation
-        send_activation_code
-      else
-        self.activate!
-      end
-    end
-    
-    def do_delete
-      logger.debug("DELETING!")
-      self.deleted_at = Time.now.utc
-    end
-
-    def do_activate
-      logger.debug("ACTIVATING!")
-      self.activated_at = Time.now.utc
-      self.deleted_at = self.activation_code = nil
-      
-      if AppConfig.require_email_activation
-        UserMailer.deliver_activation_success(self)
-      else
-        UserMailer.deliver_signup_notification(self)
-      end
-    end
+  end
 end
