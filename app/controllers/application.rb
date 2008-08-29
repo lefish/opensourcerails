@@ -27,4 +27,14 @@ class ApplicationController < ActionController::Base
       return false
     end
   end
+  
+  # The following method make sure that you can use method's of Helper in controller
+  def helper_controller
+    Helper.instance
+  end
+
+  class Helper
+    include Singleton
+    include ActionView::Helpers::TextHelper
+  end  
 end

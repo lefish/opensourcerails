@@ -35,17 +35,25 @@ class UsersController < ApplicationController
 
   def show
     @user = find_user
-    @bookmarked_projects = @user.projects
+    @total_bookmarked_proejcts = @user.projects
+    @bookmarked_projects = @user.projects.paginate(:order => "promoted_at DESC", :page => params[:page], :per_page => AppConfig.projects_per_page)
     @submitted_projects = @user.submitted
     @activities = @user.activities.all(:limit => 101, :order => "created_at DESC")
     @rated_projects = @user.rated_projects
-    
-    respond_to do |format|
-      format.html
-      format.js do
-        render :partial => "users/parts/about_user", :locals => {:user => @user}, :layout => false
+    if params[:ajax]
+      render :partial => "projects/parts/grid", :locals => {:projects => @bookmarked_projects,
+        :grid_title => helper_controller.pluralize(@total_bookmarked_proejcts.size, "Bookmarked Project"),
+        :empty_message => "No applications have been bookmarked yet."}, :layout => false
+    else
+      respond_to do |format|
+        format.html
+        format.js do
+          render :partial => "users/parts/about_user", :locals => {:user => @user}, :layout => false
+        end
       end
-    end
+    end    
+    
+
   end
   
   def edit
@@ -187,7 +195,7 @@ class UsersController < ApplicationController
   
 
 
-protected
+  protected
   def find_user
     @user = User.find(params[:id])
   end
